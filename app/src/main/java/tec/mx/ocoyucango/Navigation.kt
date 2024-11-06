@@ -36,7 +36,7 @@ fun Navigation(navController: NavHostController, auth: FirebaseAuth) {
             AchievementsScreen(navController)
         }
         composable("camera") {
-            CameraScreen(navController)
+            CameraScreen()
         }
         composable("notifications") {
             NotificationsScreen(navController)

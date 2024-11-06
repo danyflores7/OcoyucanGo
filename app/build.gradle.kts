@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.services)
-    alias(libs.plugins.crashlytics)
     id("kotlin-kapt")
 }
 
@@ -24,6 +23,9 @@ android {
 
         val apiKey: String = project.findProperty("PLANTNET_API_KEY") as String? ?: ""
         buildConfigField("String", "PLANTNET_API_KEY", "\"$apiKey\"")
+
+        val mapsApiKey: String = project.findProperty("MAPS_API_KEY") as String? ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
@@ -92,6 +94,19 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+
+    // Google Maps
+    implementation(libs.google.maps.compose)
+    implementation(libs.play.services.maps)
+
+    // Accompanist Permissions (actualizado)
+    implementation(libs.accompanist.permissions)
+
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // Firebase Firestore
+    implementation("com.google.firebase:firebase-firestore-ktx:24.4.5")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
