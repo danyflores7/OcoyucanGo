@@ -16,10 +16,17 @@ import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import tec.mx.ocoyucango.ui.theme.Green
 import com.google.firebase.auth.ktx.userProfileChangeRequest
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 
 @Composable
-fun SignUpScreen(navController: NavHostController, auth: FirebaseAuth) {
+fun SignUpScreen(
+    navController: NavHostController,
+    auth: FirebaseAuth,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

@@ -13,9 +13,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import tec.mx.ocoyucango.R
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 @Composable
-fun SplashScreen(navController: NavHostController) {
+fun SplashScreen(
+    navController: NavHostController,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     // Temporizador de 2 segundos
     Handler(Looper.getMainLooper()).postDelayed({
         navController.navigate("login") {

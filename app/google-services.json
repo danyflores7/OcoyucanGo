@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "546784374908",
-    "project_id": "ocoyucango-9b592",
-    "storage_bucket": "ocoyucango-9b592.firebasestorage.app"
+    "project_number": "663422232610",
+    "project_id": "ocoyucango",
+    "storage_bucket": "ocoyucango.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:546784374908:android:170470ba45024b751119f9",
+        "mobilesdk_app_id": "1:663422232610:android:a873c2446423cf008b027b",
         "android_client_info": {
           "package_name": "tec.mx.ocoyucango"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBpHx0LCPe4JnWFCCEjgxgcSgORfJNCKjc"
+          "current_key": "AIzaSyBZvddLbBJmwAphhvv47n-vDx3XKpDWpUs"
         }
       ],
       "services": {

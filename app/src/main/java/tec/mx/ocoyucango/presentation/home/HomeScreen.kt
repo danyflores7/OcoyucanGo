@@ -3,7 +3,7 @@ package tec.mx.ocoyucango.presentation.home
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.location.Location
+import android.os.Bundle
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,36 +11,65 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.google.accompanist.permissions.*
-import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
-import kotlinx.coroutines.delay
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.model.PolylineOptions
 import tec.mx.ocoyucango.presentation.common.BottomNavigationBar
 import tec.mx.ocoyucango.presentation.common.TopBar
 import tec.mx.ocoyucango.ui.theme.Green
-import java.util.concurrent.TimeUnit
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
-import tec.mx.ocoyucango.data.model.Route
-import com.google.firebase.Timestamp
-import com.google.firebase.auth.FirebaseAuth
-
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 private const val TAG = "HomeScreen"
+
+/**
+ * Función para manejar el ciclo de vida de MapView dentro de Compose.
+ */
+@Composable
+fun rememberMapViewWithLifecycle(): MapView {
+    val context = LocalContext.current
+    val mapView = remember { MapView(context) }
+
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, mapView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
+                Lifecycle.Event.ON_START -> mapView.onStart()
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> {}
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
+    }
+
+    return mapView
+}
 
 @OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("MissingPermission") // Ya que verificamos los permisos
 @Composable
-fun HomeScreen(navController: NavController) {
-    val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-
+fun HomeScreen(
+    navController: NavController,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     val locationPermissionState = rememberMultiplePermissionsState(
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -48,7 +77,6 @@ fun HomeScreen(navController: NavController) {
         )
     )
 
-    // Estado para manejar si los permisos se han otorgado
     val allPermissionsGranted = locationPermissionState.allPermissionsGranted
     Log.d(TAG, "Permisos otorgados: $allPermissionsGranted")
 
@@ -58,96 +86,11 @@ fun HomeScreen(navController: NavController) {
         locationPermissionState.launchMultiplePermissionRequest()
     }
 
-    // Estado para la ubicación del usuario
-    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    // Obtener referencia a MapView
+    val mapView = rememberMapViewWithLifecycle()
 
-    // Estado para el control de la cámara del mapa
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(0.0, 0.0), 2f) // Posición inicial genérica
-    }
-
-    // Estado para saber si el recorrido está iniciado
-    var isRouteStarted by remember { mutableStateOf(false) }
-
-    // Lista mutable para los puntos del recorrido
-    val pathPoints = remember { mutableStateListOf<LatLng>() }
-
-    // Estados para distancia y duración
-    var distanceTraveled by remember { mutableStateOf(0.0) } // en metros
-    var routeStartTime by remember { mutableStateOf<Long?>(null) }
-    var routeDuration by remember { mutableStateOf(0L) } // en milisegundos
-
-    // Callback de ubicación
-    val locationCallback = remember {
-        object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                locationResult.lastLocation?.let { location ->
-                    val latLng = LatLng(location.latitude, location.longitude)
-                    userLocation = latLng
-                    Log.d(TAG, "Ubicación actualizada: $latLng")
-
-                    if (isRouteStarted) {
-                        pathPoints.add(latLng)
-                        Log.d(TAG, "Añadido punto al recorrido: $latLng")
-
-                        if (pathPoints.size > 1) {
-                            val prevLocation = pathPoints[pathPoints.size - 2]
-                            val results = FloatArray(1)
-                            Location.distanceBetween(
-                                prevLocation.latitude,
-                                prevLocation.longitude,
-                                latLng.latitude,
-                                latLng.longitude,
-                                results
-                            )
-                            distanceTraveled += results[0]
-                            Log.d(TAG, "Distancia recorrida actual: $distanceTraveled metros")
-                        }
-                    }
-                } ?: run {
-                    Log.e(TAG, "No se recibió ninguna ubicación en la actualización")
-                }
-            }
-
-            override fun onLocationAvailability(locationAvailability: LocationAvailability) {
-                super.onLocationAvailability(locationAvailability)
-                Log.d(TAG, "Disponibilidad de ubicación: ${locationAvailability.isLocationAvailable}")
-            }
-        }
-    }
-
-    // Iniciar o detener actualizaciones de ubicación
-    LaunchedEffect(isRouteStarted, allPermissionsGranted) {
-        if (allPermissionsGranted) {
-            if (isRouteStarted) {
-                Log.d(TAG, "Iniciando recorrido")
-                routeStartTime = System.currentTimeMillis()
-                val locationRequest = LocationRequest.Builder(
-                    Priority.PRIORITY_HIGH_ACCURACY, 2000L
-                ).build()
-                fusedLocationClient.requestLocationUpdates(
-                    locationRequest,
-                    locationCallback,
-                    context.mainLooper
-                )
-            } else {
-                Log.d(TAG, "Deteniendo recorrido")
-                fusedLocationClient.removeLocationUpdates(locationCallback)
-                routeStartTime = null
-            }
-        } else {
-            Log.w(TAG, "Permisos de ubicación no otorgados")
-        }
-    }
-
-    // Actualizar duración cada segundo
-    LaunchedEffect(routeStartTime) {
-        while (routeStartTime != null) {
-            routeDuration = System.currentTimeMillis() - routeStartTime!!
-            Log.d(TAG, "Duración del recorrido: ${formatDuration(routeDuration)}")
-            delay(1000L)
-        }
-    }
+    // Definir googleMap
+    var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -159,39 +102,51 @@ fun HomeScreen(navController: NavController) {
                 .fillMaxSize()
                 .weight(1f)
         ) {
-            // Verificar permisos de ubicación
             if (allPermissionsGranted) {
-                GoogleMap(
-                    modifier = Modifier.fillMaxSize(),
-                    cameraPositionState = cameraPositionState,
-                    properties = MapProperties(isMyLocationEnabled = true),
-                    uiSettings = MapUiSettings(myLocationButtonEnabled = true),
-                    onMapLoaded = {
-                        Log.d(TAG, "Mapa cargado exitosamente")
-                    },
-                    onMapClick = { latLng ->
-                        Log.d(TAG, "Mapa clickeado en: $latLng")
-                    },
-                ) {
-                    // Dibujar recorrido
-                    if (pathPoints.isNotEmpty()) {
-                        Polyline(
-                            points = pathPoints.toList(),
-                            color = Color.Red,
-                            width = 5f
-                        )
-                        Log.d(TAG, "Polyline dibujada con ${pathPoints.size} puntos")
+                // Iniciar actualizaciones de ubicación
+                DisposableEffect(Unit) {
+                    routeViewModel.startLocationUpdates()
+                    onDispose {
+                        routeViewModel.stopLocationUpdates()
                     }
                 }
 
-                // Mover cámara a la ubicación del usuario
-                LaunchedEffect(userLocation) {
-                    userLocation?.let {
-                        Log.d(TAG, "Actualizando cámara a la ubicación del usuario: $it")
-                        cameraPositionState.animate(
-                            update = CameraUpdateFactory.newLatLngZoom(it, 15f),
-                            durationMs = 1000
-                        )
+                AndroidView(
+                    factory = { _ ->
+                        mapView.apply {
+                            getMapAsync { map ->
+                                googleMap = map
+                                map.uiSettings.isMyLocationButtonEnabled = true
+                                map.isMyLocationEnabled = true
+
+                                // Restaurar la posición de la cámara si está disponible
+                                routeViewModel.cameraPosition?.let { position ->
+                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15f))
+                                }
+                            }
+                        }
+                    },
+                    update = { _ ->
+                        val pathPoints = routeViewModel.pathPoints.toList()
+                        googleMap?.let { map ->
+                            if (routeViewModel.isRouteStarted && pathPoints.isNotEmpty()) {
+                                map.clear()
+                                map.addPolyline(
+                                    PolylineOptions()
+                                        .addAll(pathPoints)
+                                        .color(Color.Red.toArgb())
+                                        .width(5f)
+                                )
+                            }
+                        }
+                    }
+                )
+
+                // Mover cámara a la ubicación del usuario cuando cambia la posición
+                LaunchedEffect(routeViewModel.cameraPosition) {
+                    routeViewModel.cameraPosition?.let { position ->
+                        Log.d(TAG, "Actualizando cámara a la ubicación del usuario: $position")
+                        googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 15f))
                     }
                 }
             } else {
@@ -204,66 +159,47 @@ fun HomeScreen(navController: NavController) {
             }
 
             // Mostrar distancia y duración cuando el recorrido está iniciado
-            if (isRouteStarted) {
+            if (routeViewModel.isRouteStarted) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(16.dp)
                 ) {
-                    Text("Distancia recorrida: ${String.format("%.2f", distanceTraveled / 1000)} km")
-                    Text("Duración: ${formatDuration(routeDuration)}")
+                    Text(
+                        "Distancia recorrida: ${String.format("%.2f", routeViewModel.distanceTraveled / 1000)} km",
+                        color = Color.Black
+                    )
+                    Text(
+                        "Duración: ${routeViewModel.formatDuration(routeViewModel.routeDuration)}",
+                        color = Color.Black
+                    )
                 }
             }
 
             // Botón para iniciar/detener recorrido
             Button(
                 onClick = {
-                    Log.d(TAG, "Botón presionado: ${if (isRouteStarted) "Detener" else "Iniciar"} recorrido")
-                    if (isRouteStarted) {
+                    Log.d(
+                        TAG,
+                        "Botón presionado: ${if (routeViewModel.isRouteStarted) "Detener" else "Iniciar"} recorrido"
+                    )
+                    if (routeViewModel.isRouteStarted) {
                         // Detener recorrido
-                        isRouteStarted = false
-
-                        // Obtener el UID del usuario actual
-                        val currentUser = FirebaseAuth.getInstance().currentUser
-                        currentUser?.let { user ->
-
-                            // Crear objeto Route
-                            val route = Route(
-                                userId = user.uid,
-                                distanceMeters = distanceTraveled,
-                                durationSeconds = TimeUnit.MILLISECONDS.toSeconds(routeDuration),
-                                endTime = Timestamp.now()
-                            )
-                            Log.d(TAG, "Creando objeto Route: $route")
-
-                            // Guardar en Firestore
-                            Firebase.firestore.collection("routes")
-                                .add(route)
-                                .addOnSuccessListener {
-                                    Log.i(TAG, "Recorrido guardado exitosamente con ID: ${it.id}")
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e(TAG, "Error al guardar el recorrido: ${e.message}", e)
-                                }
-                        } ?: run {
-                            Log.e(TAG, "Usuario no autenticado al intentar guardar el recorrido")
-                        }
+                        routeViewModel.stopRoute(googleMap)
                     } else {
                         // Iniciar recorrido
-                        isRouteStarted = true
-                        distanceTraveled = 0.0
-                        routeDuration = 0L
-                        pathPoints.clear()
-                        Log.d(TAG, "Recorrido iniciado: distancia y duración reseteadas")
+                        routeViewModel.startRoute()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Green),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (routeViewModel.isRouteStarted) Color.Red else Green
+                ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
-                Text(text = if (isRouteStarted) "Detener" else "Iniciar recorrido")
+                Text(text = if (routeViewModel.isRouteStarted) "Detener" else "Iniciar recorrido")
             }
         }
 
@@ -271,11 +207,4 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
-fun formatDuration(durationMillis: Long): String {
-    val hours = TimeUnit.MILLISECONDS.toHours(durationMillis)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMillis) % 60
-
-    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
-}
 

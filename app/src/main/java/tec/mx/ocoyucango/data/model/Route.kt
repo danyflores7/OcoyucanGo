@@ -8,5 +8,6 @@ data class Route(
     val distanceMeters: Double = 0.0,
     val durationSeconds: Long = 0L,
     val startTime: Timestamp = Timestamp.now(),
-    val endTime: Timestamp? = null
+    val endTime: Timestamp? = null,
+    val imageUrl: String? = null // Nueva propiedad para la URL de la imagen
 )

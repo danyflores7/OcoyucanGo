@@ -108,6 +108,15 @@ dependencies {
     // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx:24.4.5")
 
+    // Firebase Storage
+    implementation("com.google.firebase:firebase-storage-ktx:20.2.1") // Asegúrate de usar la última versión disponible
+
+    // Coil para carga de imágenes
+    implementation("io.coil-kt:coil-compose:2.4.0") // Asegúrate de usar la última versión disponible
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.1")
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

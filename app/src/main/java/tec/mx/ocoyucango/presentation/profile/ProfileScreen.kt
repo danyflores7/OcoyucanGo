@@ -21,10 +21,16 @@ import tec.mx.ocoyucango.presentation.common.TopBar
 import tec.mx.ocoyucango.R
 import tec.mx.ocoyucango.presentation.common.BottomNavigationBar
 import com.google.firebase.auth.FirebaseAuth
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(
+    navController: NavController,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
 

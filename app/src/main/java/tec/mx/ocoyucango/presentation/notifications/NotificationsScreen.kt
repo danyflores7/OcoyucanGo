@@ -16,9 +16,15 @@ import androidx.navigation.NavController
 import tec.mx.ocoyucango.presentation.common.TopBar
 import tec.mx.ocoyucango.R
 import tec.mx.ocoyucango.presentation.common.BottomNavigationBar
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 @Composable
-fun NotificationsScreen(navController: NavController) {
+fun NotificationsScreen(
+    navController: NavController,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()

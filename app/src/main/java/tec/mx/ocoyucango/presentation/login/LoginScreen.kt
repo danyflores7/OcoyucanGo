@@ -16,10 +16,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 import tec.mx.ocoyucango.ui.theme.Green
 
 @Composable
-fun LoginScreen(navController: NavHostController, auth: FirebaseAuth) {
+fun LoginScreen(
+    navController: NavHostController,
+    auth: FirebaseAuth,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }

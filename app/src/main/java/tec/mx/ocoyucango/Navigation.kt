@@ -13,40 +13,55 @@ import tec.mx.ocoyucango.presentation.login.LoginScreen
 import tec.mx.ocoyucango.presentation.notifications.NotificationsScreen
 import tec.mx.ocoyucango.presentation.profile.ProfileScreen
 import tec.mx.ocoyucango.presentation.signup.SignUpScreen
+import tec.mx.ocoyucango.presentation.species.SpeciesDetailScreen
 import tec.mx.ocoyucango.presentation.species.SpeciesScreen
 import tec.mx.ocoyucango.presentation.splash.SplashScreen
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 @Composable
-fun Navigation(navController: NavHostController, auth: FirebaseAuth) {
+fun Navigation(
+    navController: NavHostController,
+    auth: FirebaseAuth,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel // Añade este parámetro
+) {
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
-            SplashScreen(navController)
+            SplashScreen(navController, routeViewModel, speciesViewModel)
         }
         composable("login") {
-            LoginScreen(navController, auth)
+            LoginScreen(navController, auth, routeViewModel, speciesViewModel)
         }
         composable("signup") {
-            SignUpScreen(navController, auth)
+            SignUpScreen(navController, auth, routeViewModel, speciesViewModel)
         }
         // Añade las nuevas rutas
         composable("species") {
-            SpeciesScreen(navController)
+            SpeciesScreen(navController, routeViewModel, speciesViewModel) // Pasa el ViewModel
         }
+
+        composable("species_detail/{speciesId}") { backStackEntry ->
+            val speciesId = backStackEntry.arguments?.getString("speciesId")
+            speciesId?.let {
+                SpeciesDetailScreen(navController, speciesId)
+            }
+        }
+
         composable("achievements") {
-            AchievementsScreen(navController)
+            AchievementsScreen(navController, routeViewModel, speciesViewModel)
         }
         composable("camera") {
-            CameraScreen()
+            CameraScreen(routeViewModel, speciesViewModel)
         }
         composable("notifications") {
-            NotificationsScreen(navController)
+            NotificationsScreen(navController, routeViewModel, speciesViewModel)
         }
         composable("profile") {
-            ProfileScreen(navController)
+            ProfileScreen(navController, routeViewModel, speciesViewModel)
         }
-        // Ruta de inicio (Home)
         composable("home") {
-            HomeScreen(navController)
+            HomeScreen(navController, routeViewModel, speciesViewModel)
         }
     }
 }

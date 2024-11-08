@@ -11,6 +11,8 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material3.*
@@ -35,11 +37,12 @@ import tec.mx.ocoyucango.data.remote.PlantNetApiClient
 import tec.mx.ocoyucango.ui.theme.Green
 import java.io.File
 import tec.mx.ocoyucango.BuildConfig
-
+import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
+import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun CameraScreen() {
+fun CameraScreen(routeViewModel: RouteViewModel, speciesViewModel: SpeciesViewModel) {
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
     val cameraController = remember { LifecycleCameraController(context) }
@@ -77,19 +80,23 @@ fun CameraScreen() {
             if (imageCaptured == null) {
                 CameraPreview(cameraController, lifecycleOwner, Modifier.padding(paddingValues))
             } else {
-                // Mostrar la imagen capturada y procesarla
+                // Hacer la Column desplazable para asegurar que todo el contenido sea accesible
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    // Limitar la altura de la imagen para evitar que ocupe todo el espacio
                     Image(
                         bitmap = BitmapFactory.decodeFile(imageCaptured!!.absolutePath).asImageBitmap(),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp), // Limita la altura
+                        contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isProcessing) {
@@ -124,7 +131,14 @@ fun CameraScreen() {
                 }
             }
         } else {
-            Text(text = "Permiso de cámara denegado", modifier = Modifier.padding(paddingValues))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Permiso de cámara denegado")
+            }
         }
     }
 }
@@ -150,7 +164,6 @@ private fun takePicture(
         }
     )
 }
-
 
 @Composable
 fun CameraPreview(
@@ -213,3 +226,6 @@ private suspend fun identifyPlant(file: File, apiKey: String): String {
         "Error al conectar con el servicio de identificación."
     }
 }
+
+
+
