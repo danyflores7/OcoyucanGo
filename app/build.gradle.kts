@@ -105,6 +105,7 @@ dependencies {
     // Google Play Services Location
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
+
     // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx:24.4.5")
 
