@@ -14,6 +14,7 @@ interface PlantNetApiService {
     @POST("v2/identify/all")
     suspend fun identifyPlant(
         @Query("api-key") apiKey: String,
+        @Query("lang") lang: String = "es", // Establecer "es" como valor predeterminado
         @Part parts: List<MultipartBody.Part>
     ): Response<PlantIdentificationResponse>
 }

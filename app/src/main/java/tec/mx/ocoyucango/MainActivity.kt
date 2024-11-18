@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private val routeViewModel: RouteViewModel by viewModels()
-    private val speciesViewModel: SpeciesViewModel by viewModels() // Añade esta línea
+    private val speciesViewModel: SpeciesViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

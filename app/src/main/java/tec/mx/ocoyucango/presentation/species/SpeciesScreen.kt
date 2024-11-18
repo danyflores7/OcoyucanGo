@@ -9,11 +9,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -28,9 +30,15 @@ import tec.mx.ocoyucango.R
 fun SpeciesScreen(
     navController: NavController,
     routeViewModel: RouteViewModel,
-    speciesViewModel: SpeciesViewModel // Recibe el ViewModel como parámetro
+    speciesViewModel: SpeciesViewModel
 ) {
     val speciesList by speciesViewModel.speciesList.collectAsState()
+    var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
+
+    val filteredSpeciesList = speciesList.filter { species ->
+        species.especie.contains(searchQuery.text, ignoreCase = true) ||
+                (species.nombreComun?.any { it.contains(searchQuery.text, ignoreCase = true) } ?: false)
+    }
 
     Column(
         modifier = Modifier
@@ -38,7 +46,17 @@ fun SpeciesScreen(
     ) {
         TopBar(title = "Especies", navController = navController)
 
-        if (speciesList.isEmpty()) {
+        // Campo de texto para la búsqueda
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Buscar especies") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+
+        if (filteredSpeciesList.isEmpty()) {
             // Mostrar indicador de carga
             Box(
                 modifier = Modifier
@@ -49,13 +67,13 @@ fun SpeciesScreen(
                 CircularProgressIndicator()
             }
         } else {
-            // Mostrar la lista de especies
+            // Mostrar la lista filtrada de especies
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)
             ) {
-                items(speciesList) { species ->
+                items(filteredSpeciesList) { species ->
                     SpeciesItem(species, navController)
                 }
             }
@@ -64,7 +82,6 @@ fun SpeciesScreen(
         BottomNavigationBar(navController = navController)
     }
 }
-
 
 @Composable
 fun SpeciesItem(species: Species, navController: NavController) {

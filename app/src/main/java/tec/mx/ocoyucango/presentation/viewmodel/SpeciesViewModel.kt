@@ -10,8 +10,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 
 class SpeciesViewModel : ViewModel() {
+
+    fun normalizeName(name: String): String {
+        return name
+            .lowercase(Locale.getDefault())
+            .replace("[^a-zñáéíóúüç ]".toRegex(), "") // Eliminar caracteres no alfabéticos
+            .trim()
+    }
 
     private val firestore = FirebaseFirestore.getInstance()
 
@@ -87,10 +95,16 @@ class SpeciesViewModel : ViewModel() {
 
                 Log.d("SpeciesViewModel", "Species list size: ${speciesListWithImages.size}")
                 _speciesList.value = speciesListWithImages
+                dataLoaded = true
 
             } catch (e: Exception) {
                 Log.e("SpeciesViewModel", "Error fetching species: ${e.message}", e)
             }
         }
+    }
+
+    // Función para obtener una especie por su ID
+    fun getSpeciesById(speciesId: String): Species? {
+        return _speciesList.value.find { it.id == speciesId }
     }
 }

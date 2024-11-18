@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.google.firebase.auth.FirebaseAuth
 import tec.mx.ocoyucango.presentation.achievements.AchievementsScreen
+import tec.mx.ocoyucango.presentation.camera.CameraComparationScreen
 import tec.mx.ocoyucango.presentation.camera.CameraScreen
 import tec.mx.ocoyucango.presentation.home.HomeScreen
 import tec.mx.ocoyucango.presentation.login.LoginScreen
@@ -24,7 +25,7 @@ fun Navigation(
     navController: NavHostController,
     auth: FirebaseAuth,
     routeViewModel: RouteViewModel,
-    speciesViewModel: SpeciesViewModel // Añade este parámetro
+    speciesViewModel: SpeciesViewModel
 ) {
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
@@ -36,15 +37,20 @@ fun Navigation(
         composable("signup") {
             SignUpScreen(navController, auth, routeViewModel, speciesViewModel)
         }
-        // Añade las nuevas rutas
         composable("species") {
-            SpeciesScreen(navController, routeViewModel, speciesViewModel) // Pasa el ViewModel
+            SpeciesScreen(navController, routeViewModel, speciesViewModel)
         }
 
+        // Ruta con parámetro speciesId
         composable("species_detail/{speciesId}") { backStackEntry ->
             val speciesId = backStackEntry.arguments?.getString("speciesId")
             speciesId?.let {
-                SpeciesDetailScreen(navController, speciesId)
+                SpeciesDetailScreen(
+                    navController = navController,
+                    speciesId = it,
+                    routeViewModel = routeViewModel,
+                    speciesViewModel = speciesViewModel
+                )
             }
         }
 
@@ -52,8 +58,20 @@ fun Navigation(
             AchievementsScreen(navController, routeViewModel, speciesViewModel)
         }
         composable("camera") {
-            CameraScreen(routeViewModel, speciesViewModel)
+            CameraScreen(navController, routeViewModel, speciesViewModel)
         }
+
+        // Ruta con parámetro speciesId para comparación de cámara
+        composable("camera_comparation/{speciesId}") { backStackEntry ->
+            val speciesId = backStackEntry.arguments?.getString("speciesId") ?: ""
+            CameraComparationScreen(
+                navController = navController,
+                routeViewModel = routeViewModel,
+                speciesViewModel = speciesViewModel,
+                speciesId = speciesId
+            )
+        }
+
         composable("notifications") {
             NotificationsScreen(navController, routeViewModel, speciesViewModel)
         }

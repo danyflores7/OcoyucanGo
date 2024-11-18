@@ -1,9 +1,9 @@
-// RouteViewModel.kt
 package tec.mx.ocoyucango.presentation.viewmodel
 
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.location.Location
 import android.util.Log
@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -256,11 +255,10 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         val currentUser = auth.currentUser
         currentUser?.let { user ->
             val route = Route(
-                userId = user.uid,
-                distanceMeters = distanceTraveled,
-                durationSeconds = TimeUnit.MILLISECONDS.toSeconds(routeDuration),
-                endTime = Timestamp.now(),
-                imageUrl = null // Se actualizará después de subir la imagen
+                distancia = distanceTraveled.toInt(), // Convertir Double a Int
+                duracion = TimeUnit.MILLISECONDS.toSeconds(routeDuration).toInt(), // Mapear correctamente
+                fin = Timestamp.now(),
+                foto = "" // Se actualizará después de subir la imagen
             )
             Log.d(TAG, "Creando objeto Route: $route")
 
@@ -286,10 +284,12 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
                             Log.d(TAG, "URL de la imagen obtenida: $uri")
                             // Actualizar el objeto Route con la URL de la imagen
                             val updatedRoute =
-                                route.copy(imageUrl = uri.toString())
+                                route.copy(foto = uri.toString())
 
-                            // Guardar el Route actualizado en Firestore
-                            firestore.collection("routes")
+                            // Guardar el Route actualizado en Firestore dentro de la subcolección 'rutas'
+                            firestore.collection("Usuarios")
+                                .document(user.uid)
+                                .collection("rutas")
                                 .add(updatedRoute)
                                 .addOnSuccessListener {
                                     Log.i(
@@ -336,14 +336,16 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val route = Route(
-            userId = currentUser.uid,
-            distanceMeters = distanceTraveled,
-            durationSeconds = TimeUnit.MILLISECONDS.toSeconds(routeDuration),
-            endTime = Timestamp.now(),
-            imageUrl = null
+            distancia = distanceTraveled.toInt(), // Conversión a Int
+            duracion = TimeUnit.MILLISECONDS.toSeconds(routeDuration).toInt(), // Esto ya está bien
+            fin = Timestamp.now(),
+            foto = "" // Se actualizará después de subir la imagen
         )
 
-        firestore.collection("routes")
+
+        firestore.collection("Usuarios")
+            .document(currentUser.uid)
+            .collection("rutas")
             .add(route)
             .addOnSuccessListener {
                 Log.i(

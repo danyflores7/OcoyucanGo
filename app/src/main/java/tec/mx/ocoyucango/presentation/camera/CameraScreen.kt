@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -40,9 +42,13 @@ import tec.mx.ocoyucango.BuildConfig
 import tec.mx.ocoyucango.presentation.viewmodel.RouteViewModel
 import tec.mx.ocoyucango.presentation.viewmodel.SpeciesViewModel
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun CameraScreen(routeViewModel: RouteViewModel, speciesViewModel: SpeciesViewModel) {
+fun CameraScreen(
+    navController: NavController,
+    routeViewModel: RouteViewModel,
+    speciesViewModel: SpeciesViewModel
+) {
     val permissionState = rememberPermissionState(permission = Manifest.permission.CAMERA)
     val context = LocalContext.current
     val cameraController = remember { LifecycleCameraController(context) }
@@ -59,6 +65,22 @@ fun CameraScreen(routeViewModel: RouteViewModel, speciesViewModel: SpeciesViewMo
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Cámara") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Regresar"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        },
         floatingActionButton = {
             if (permissionState.status.isGranted && imageCaptured == null) {
                 FloatingActionButton(onClick = {
@@ -80,7 +102,7 @@ fun CameraScreen(routeViewModel: RouteViewModel, speciesViewModel: SpeciesViewMo
             if (imageCaptured == null) {
                 CameraPreview(cameraController, lifecycleOwner, Modifier.padding(paddingValues))
             } else {
-                // Hacer la Column desplazable para asegurar que todo el contenido sea accesible
+                // Contenido después de capturar la imagen
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -89,13 +111,12 @@ fun CameraScreen(routeViewModel: RouteViewModel, speciesViewModel: SpeciesViewMo
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Limitar la altura de la imagen para evitar que ocupe todo el espacio
                     Image(
                         bitmap = BitmapFactory.decodeFile(imageCaptured!!.absolutePath).asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp), // Limita la altura
+                            .height(300.dp),
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -204,6 +225,7 @@ private suspend fun identifyPlant(file: File, apiKey: String): String {
     return try {
         val response = apiService.identifyPlant(
             apiKey = apiKey,
+            lang = "es", // Enviar "es" para español
             parts = parts
         )
 
@@ -226,6 +248,3 @@ private suspend fun identifyPlant(file: File, apiKey: String): String {
         "Error al conectar con el servicio de identificación."
     }
 }
-
-
-
