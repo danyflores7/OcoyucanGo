@@ -3,7 +3,9 @@ package tec.mx.ocoyucango.presentation.viewmodel
 
 import android.Manifest
 import android.app.Application
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.location.Location
 import android.util.Log
@@ -36,6 +38,10 @@ private const val TAG = "RouteViewModel"
 
 class RouteViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val geofencingClient: GeofencingClient = LocationServices.getGeofencingClient(context)
+    var isInsideGeofence by mutableStateOf(false)
+        private set
+
     private val context: Context get() = getApplication<Application>().applicationContext
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
@@ -67,6 +73,45 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     private var locationUpdatesActive = false
+
+    fun setupGeofence(latitude: Double, longitude: Double, radius: Float) {
+        val geofence = Geofence.Builder()
+            .setRequestId("RESTRICTED_AREA")
+            .setCircularRegion(latitude, longitude, radius)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+            .build()
+
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofence(geofence)
+            .build()
+
+        try {
+            geofencingClient.addGeofences(geofencingRequest, getGeofencePendingIntent())
+                .addOnSuccessListener {
+                    Log.d(TAG, "Geofence added successfully")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Failed to add geofence: ${e.message}", e)
+                }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Permission denied: ${e.message}", e)
+        }
+    }
+
+    private fun getGeofencePendingIntent(): PendingIntent {
+        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        return PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+    }
+    fun updateGeofenceStatus(isInside: Boolean) {
+        isInsideGeofence = isInside
+    }
 
     fun startLocationUpdates() {
         if (locationUpdatesActive) return
@@ -159,6 +204,10 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
     fun startRoute() {
         if (isRouteStarted) {
             Log.w(TAG, "El recorrido ya está iniciado")
+            return
+        }
+        if (!isInsideGeofence) {
+            Log.w(TAG, "El usuario no está dentro de la geocerca. No se puede iniciar el recorrido.")
             return
         }
 

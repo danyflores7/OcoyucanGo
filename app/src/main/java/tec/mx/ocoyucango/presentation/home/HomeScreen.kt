@@ -84,6 +84,12 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         Log.d(TAG, "Solicitando permisos de ubicación")
         locationPermissionState.launchMultiplePermissionRequest()
+
+        // Configurar la geocerca
+        val latitude = 19.432608 // Coordenadas del área restringida
+        val longitude = -99.133209
+        val radius = 500f // Radio en metros
+        routeViewModel.setupGeofence(latitude, longitude, radius)
     }
 
     // Obtener referencia a MapView
@@ -179,16 +185,20 @@ fun HomeScreen(
             // Botón para iniciar/detener recorrido
             Button(
                 onClick = {
-                    Log.d(
-                        TAG,
-                        "Botón presionado: ${if (routeViewModel.isRouteStarted) "Detener" else "Iniciar"} recorrido"
-                    )
-                    if (routeViewModel.isRouteStarted) {
-                        // Detener recorrido
-                        routeViewModel.stopRoute(googleMap)
+                    if (routeViewModel.isInsideGeofence) {
+                        Log.d(
+                            TAG,
+                            "Botón presionado: ${if (routeViewModel.isRouteStarted) "Detener" else "Iniciar"} recorrido"
+                        )
+                        if (routeViewModel.isRouteStarted) {
+                            // Detener recorrido
+                            routeViewModel.stopRoute(googleMap)
+                        } else {
+                            // Iniciar recorrido
+                            routeViewModel.startRoute()
+                        }
                     } else {
-                        // Iniciar recorrido
-                        routeViewModel.startRoute()
+                        Log.w(TAG, "El usuario no está dentro de la geocerca. No se puede iniciar el recorrido.")
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -206,5 +216,3 @@ fun HomeScreen(
         BottomNavigationBar(navController = navController)
     }
 }
-
-
