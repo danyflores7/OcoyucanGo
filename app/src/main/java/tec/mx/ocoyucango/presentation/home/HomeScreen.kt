@@ -86,9 +86,9 @@ fun HomeScreen(
         locationPermissionState.launchMultiplePermissionRequest()
 
         // Configurar la geocerca
-        val latitude = 19.432608 // Coordenadas del área restringida
-        val longitude = -99.133209
-        val radius = 500f // Radio en metros
+        val latitude = 18.868998842776946 // Coordenadas del área restringida
+        val longitude = -98.29739481852795
+        val radius = 10000f // Radio en metros
         routeViewModel.setupGeofence(latitude, longitude, radius)
     }
 
